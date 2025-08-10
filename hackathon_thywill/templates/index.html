@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Navigation -->
+<div style="text-align: right; margin-bottom: 2rem;">
+    {% if current_user %}
+        <span style="color: var(--text-light); margin-right: 1rem;">Welcome, {{ current_user.display_name }}!</span>
+        <form method="POST" action="/logout" style="display: inline;">
+            <button type="submit" style="background: none; border: none; color: var(--primary); cursor: pointer; text-decoration: underline;">
+                Sign Out
+            </button>
+        </form>
+    {% else %}
+        <a href="/login" style="color: var(--primary); text-decoration: none; margin-right: 1rem;">Sign In</a>
+        <a href="/register" style="color: var(--primary); text-decoration: none;">Sign Up</a>
+    {% endif %}
+</div>
+
+<!-- Prayer Submission Form -->
+<section class="prayer-form">
+    <h2>Share Your Prayer Request</h2>
+    <form method="POST" action="/prayers">
+        <div class="form-group">
+            <label for="author_name">Your Name</label>
+            <input type="text" id="author_name" name="author_name" class="form-input" 
+                   value="{% if current_user %}{{ current_user.display_name }}{% endif %}" 
+                   {% if current_user %}readonly{% else %}required{% endif %}>
+        </div>
+        
+        <div class="form-group">
+            <label for="prayer_text">Prayer Request</label>
+            <textarea id="prayer_text" name="prayer_text" class="form-input form-textarea" 
+                      placeholder="Share what's on your heart..." required></textarea>
+        </div>
+        
+        <button type="submit" class="btn">Share Prayer</button>
+    </form>
+</section>
+
+<!-- Prayer Feed -->
+<section class="prayers-section">
+    <h2>Community Prayers</h2>
+    
+    {% if prayers %}
+        {% for prayer in prayers %}
+        <article class="prayer-card">
+            <header class="prayer-header">
+                <span class="prayer-author">{{ prayer.display_name or "Anonymous" }}</span>
+                <time class="prayer-time">{{ prayer.created_at.split()[0] if prayer.created_at else "Recently" }}</time>
+            </header>
+            
+            <div class="prayer-text">
+                {{ prayer.text }}
+            </div>
+            
+            {% if prayer.generated_prayer %}
+            <div class="prayer-generated">
+                <h4>AI Prayer Response</h4>
+                <p>{{ prayer.generated_prayer }}</p>
+            </div>
+            {% endif %}
+            
+            <footer class="prayer-actions">
+                <div class="prayer-count">
+                    <svg class="icon" viewBox="0 0 24 24">
+                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                    </svg>
+                    {{ prayer.prayer_count }} people prayed
+                </div>
+                
+                {% if current_user %}
+                <button onclick="togglePrayerMark('{{ prayer.id }}', {{ prayer.user_marked }})" 
+                        class="btn-prayer-mark {% if prayer.user_marked %}marked{% endif %}"
+                        id="mark-btn-{{ prayer.id }}">
+                    {% if prayer.user_marked %}
+                        ✓ I prayed for this
+                    {% else %}
+                        🙏 I'll pray for this
+                    {% endif %}
+                </button>
+                {% endif %}
+            </footer>
+        </article>
+        {% endfor %}
+    {% else %}
+        <div class="empty-state">
+            <h3>No prayers yet</h3>
+            <p>Be the first to share a prayer request with the community.</p>
+        </div>
+    {% endif %}
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function togglePrayerMark(prayerId, isCurrentlyMarked) {
+    const button = document.getElementById(`mark-btn-${prayerId}`);
+    const originalText = button.textContent;
+    button.textContent = '...';
+    button.disabled = true;
+    
+    try {
+        const method = isCurrentlyMarked ? 'DELETE' : 'POST';
+        const response = await fetch(`/mark/${prayerId}`, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+        
+        if (response.ok) {
+            // Toggle the button state
+            if (isCurrentlyMarked) {
+                button.textContent = '🙏 I\'ll pray for this';
+                button.classList.remove('marked');
+                button.onclick = () => togglePrayerMark(prayerId, false);
+            } else {
+                button.textContent = '✓ I prayed for this';
+                button.classList.add('marked');
+                button.onclick = () => togglePrayerMark(prayerId, true);
+            }
+            
+            // Refresh the page to update counts
+            setTimeout(() => {
+                window.location.reload();
+            }, 500);
+        } else {
+            throw new Error('Failed to update prayer mark');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        button.textContent = originalText;
+        alert('Please sign in to mark prayers');
+    } finally {
+        button.disabled = false;
+    }
+}
+</script>
+{% endblock %}
