@@ -24,7 +24,7 @@
             <label for="author_name">Your Name</label>
             <input type="text" id="author_name" name="author_name" class="form-input" 
                    value="{% if current_user %}{{ current_user.display_name }}{% endif %}" 
-                   {% if current_user %}readonly{% else %}required{% endif %}>
+                   required>
         </div>
         
         <div class="form-group">
@@ -51,11 +51,6 @@
             
             <div class="prayer-text">
                 {{ prayer.text }}
-                <div class="audio-controls">
-                    <button onclick="playAudio('{{ prayer.id }}', 'original')" class="audio-btn" title="Listen to original prayer">
-                        🎵 Listen
-                    </button>
-                </div>
             </div>
             
             {% if prayer.generated_prayer %}
@@ -78,7 +73,6 @@
                     {{ prayer.prayer_count }} people prayed
                 </div>
                 
-                {% if current_user %}
                 <button onclick="togglePrayerMark('{{ prayer.id }}', {{ prayer.user_marked }})" 
                         class="btn-prayer-mark {% if prayer.user_marked %}marked{% endif %}"
                         id="mark-btn-{{ prayer.id }}">
@@ -88,7 +82,6 @@
                         🙏 I'll pray for this
                     {% endif %}
                 </button>
-                {% endif %}
             </footer>
         </article>
         {% endfor %}
