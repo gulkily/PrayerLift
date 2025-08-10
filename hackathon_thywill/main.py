@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, Form, Depends, HTTPException, status, Response
+from fastapi import FastAPI, Request, Form, Depends, HTTPException, status, Response, Cookie
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -8,7 +8,7 @@ from datetime import datetime
 import os
 from ai_service import ai_service
 from tts_service import tts_service
-from auth import get_current_user_optional, require_auth, create_session, hash_password, verify_password
+from auth import get_current_user_optional, get_or_create_session_user, require_auth, create_session, hash_password, verify_password
 
 app = FastAPI(title="PrayerLift")
 
@@ -80,63 +80,66 @@ def get_db():
         conn.close()
 
 @app.get("/", response_class=HTMLResponse)
-async def prayer_feed(request: Request, current_user = Depends(get_current_user_optional), db = Depends(get_db)):
-    """Display the main prayer feed"""
-    cursor = db.cursor()
+async def prayer_feed(request: Request, session_id: str = Cookie(None), db = Depends(get_db)):
+    """Display the main prayer feed with auto-session creation"""
+    from fastapi import Response
     
-    if current_user:
-        cursor.execute("""
-            SELECT p.*, u.display_name, 
-                   COUNT(pm.prayer_id) as prayer_count,
-                   CASE WHEN upm.prayer_id IS NOT NULL THEN 1 ELSE 0 END as user_marked
-            FROM prayers p 
-            LEFT JOIN users u ON p.author_id = u.id
-            LEFT JOIN prayer_marks pm ON p.id = pm.prayer_id
-            LEFT JOIN prayer_marks upm ON p.id = upm.prayer_id AND upm.user_id = ?
-            GROUP BY p.id
-            ORDER BY p.created_at DESC
-        """, (current_user["id"],))
-    else:
-        cursor.execute("""
-            SELECT p.*, u.display_name, 
-                   COUNT(pm.prayer_id) as prayer_count,
-                   0 as user_marked
-            FROM prayers p 
-            LEFT JOIN users u ON p.author_id = u.id
-            LEFT JOIN prayer_marks pm ON p.id = pm.prayer_id
-            GROUP BY p.id
-            ORDER BY p.created_at DESC
-        """)
+    # Get or create user session
+    current_user, session_id = get_or_create_session_user(session_id, db)
+    
+    cursor = db.cursor()
+    cursor.execute("""
+        SELECT p.*, u.display_name, 
+               COUNT(pm.prayer_id) as prayer_count,
+               CASE WHEN upm.prayer_id IS NOT NULL THEN 1 ELSE 0 END as user_marked
+        FROM prayers p 
+        LEFT JOIN users u ON p.author_id = u.id
+        LEFT JOIN prayer_marks pm ON p.id = pm.prayer_id
+        LEFT JOIN prayer_marks upm ON p.id = upm.prayer_id AND upm.user_id = ?
+        GROUP BY p.id
+        ORDER BY p.created_at DESC
+    """, (current_user["id"],))
     
     prayers = cursor.fetchall()
     
-    return templates.TemplateResponse("index.html", {
+    response = templates.TemplateResponse("index.html", {
         "request": request, 
         "prayers": prayers,
         "current_user": current_user
     })
+    
+    # Set session cookie if new session was created
+    if not request.cookies.get("session_id"):
+        response.set_cookie(key="session_id", value=session_id, httponly=True, max_age=30*24*60*60)
+    
+    return response
 
 @app.post("/prayers")
 async def submit_prayer(
     request: Request,
     prayer_text: str = Form(...),
     author_name: str = Form(...),
+    session_id: str = Cookie(None),
     db = Depends(get_db)
 ):
     """Submit a new prayer request"""
+    # Get or create user session
+    current_user, _ = get_or_create_session_user(session_id, db)
+    
     cursor = db.cursor()
     
-    # Create or get user
-    user_id = str(uuid.uuid4())
-    try:
-        cursor.execute(
-            "INSERT INTO users (id, display_name) VALUES (?, ?)",
-            (user_id, author_name)
-        )
-    except sqlite3.IntegrityError:
-        # User already exists, get their ID
-        cursor.execute("SELECT id FROM users WHERE display_name = ?", (author_name,))
-        user_id = cursor.fetchone()[0]
+    # Update user's name if it changed
+    if author_name.strip() != current_user["display_name"]:
+        try:
+            cursor.execute(
+                "UPDATE users SET display_name = ? WHERE id = ?",
+                (author_name.strip(), current_user["id"])
+            )
+        except sqlite3.IntegrityError:
+            # Name already taken, keep the old name
+            author_name = current_user["display_name"]
+    
+    user_id = current_user["id"]
     
     # Create prayer
     prayer_id = str(uuid.uuid4())
@@ -234,10 +237,13 @@ async def logout(response: Response):
 @app.post("/mark/{prayer_id}")
 async def mark_prayer(
     prayer_id: str,
-    current_user = Depends(require_auth),
+    session_id: str = Cookie(None),
     db = Depends(get_db)
 ):
     """Mark that user has prayed for this prayer"""
+    # Get or create user session  
+    current_user, _ = get_or_create_session_user(session_id, db)
+    
     cursor = db.cursor()
     
     try:
@@ -253,10 +259,13 @@ async def mark_prayer(
 @app.delete("/mark/{prayer_id}")
 async def unmark_prayer(
     prayer_id: str,
-    current_user = Depends(require_auth),
+    session_id: str = Cookie(None),
     db = Depends(get_db)
 ):
     """Remove prayer mark"""
+    # Get or create user session
+    current_user, _ = get_or_create_session_user(session_id, db)
+    
     cursor = db.cursor()
     
     try:

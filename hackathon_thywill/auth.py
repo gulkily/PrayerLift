@@ -63,6 +63,43 @@ def get_current_user_optional(session_id: Optional[str] = Cookie(None), db = Dep
     """Get current user but don't require authentication"""
     return get_current_user(session_id, db)
 
+def create_anonymous_user(db) -> str:
+    """Create anonymous user for session tracking"""
+    user_id = str(uuid.uuid4())
+    anonymous_name = f"Anonymous_{user_id[:8]}"
+    
+    cursor = db.cursor()
+    cursor.execute(
+        "INSERT INTO users (id, display_name) VALUES (?, ?)",
+        (user_id, anonymous_name)
+    )
+    db.commit()
+    return user_id
+
+def get_or_create_session_user(session_id: Optional[str] = Cookie(None), db = Depends(get_db)) -> tuple[Optional[dict], str]:
+    """Get current user or create anonymous session, returning (user, session_id)"""
+    current_user = get_current_user(session_id, db) if session_id else None
+    
+    if current_user:
+        return current_user, session_id
+    
+    # Create anonymous user and session
+    user_id = create_anonymous_user(db)
+    new_session_id = create_session(user_id, db)
+    
+    # Get the newly created user
+    cursor = db.cursor()
+    cursor.execute("SELECT id, display_name FROM users WHERE id = ?", (user_id,))
+    user_data = cursor.fetchone()
+    
+    anonymous_user = {
+        "id": user_data[0],
+        "display_name": user_data[1],
+        "is_anonymous": True
+    }
+    
+    return anonymous_user, new_session_id
+
 def require_auth(user = Depends(get_current_user)) -> dict:
     """Require user to be authenticated"""
     if not user:
