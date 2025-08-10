@@ -7,6 +7,7 @@ import uuid
 from datetime import datetime
 import os
 from ai_service import ai_service
+from tts_service import tts_service
 from auth import get_current_user_optional, require_auth, create_session, hash_password, verify_password
 
 app = FastAPI(title="PrayerLift")
@@ -267,6 +268,30 @@ async def unmark_prayer(
         return {"success": True}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/audio/{prayer_id}")
+async def get_prayer_audio(prayer_id: str, audio_type: str = "original", db = Depends(get_db)):
+    """Generate and return audio for a prayer (original or generated)"""
+    cursor = db.cursor()
+    cursor.execute("SELECT text, generated_prayer FROM prayers WHERE id = ?", (prayer_id,))
+    prayer = cursor.fetchone()
+    
+    if not prayer:
+        raise HTTPException(status_code=404, detail="Prayer not found")
+    
+    # Choose text based on audio_type
+    if audio_type == "generated" and prayer[1]:
+        text = prayer[1]
+    else:
+        text = prayer[0]
+    
+    # Generate audio
+    audio_base64 = tts_service.generate_audio_base64(text)
+    
+    if not audio_base64:
+        raise HTTPException(status_code=503, detail="TTS service unavailable")
+    
+    return {"audio": audio_base64, "type": "audio/mpeg"}
 
 if __name__ == "__main__":
     import uvicorn

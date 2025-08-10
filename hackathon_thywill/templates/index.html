@@ -51,12 +51,22 @@
             
             <div class="prayer-text">
                 {{ prayer.text }}
+                <div class="audio-controls">
+                    <button onclick="playAudio('{{ prayer.id }}', 'original')" class="audio-btn" title="Listen to original prayer">
+                        🎵 Listen
+                    </button>
+                </div>
             </div>
             
             {% if prayer.generated_prayer %}
             <div class="prayer-generated">
                 <h4>AI Prayer Response</h4>
                 <p>{{ prayer.generated_prayer }}</p>
+                <div class="audio-controls">
+                    <button onclick="playAudio('{{ prayer.id }}', 'generated')" class="audio-btn" title="Listen to AI prayer response">
+                        🎵 Listen to Response
+                    </button>
+                </div>
             </div>
             {% endif %}
             
@@ -131,6 +141,84 @@ async function togglePrayerMark(prayerId, isCurrentlyMarked) {
         console.error('Error:', error);
         button.textContent = originalText;
         alert('Please sign in to mark prayers');
+    } finally {
+        button.disabled = false;
+    }
+}
+
+// Audio playback functionality
+let currentAudio = null;
+
+async function playAudio(prayerId, audioType) {
+    const button = event.target;
+    const originalText = button.textContent;
+    
+    // Stop current audio if playing
+    if (currentAudio) {
+        currentAudio.pause();
+        currentAudio = null;
+        // Reset all audio buttons
+        document.querySelectorAll('.audio-btn').forEach(btn => {
+            if (btn.textContent.includes('⏸️')) {
+                btn.textContent = btn.textContent.replace('⏸️', '🎵');
+            }
+        });
+    }
+    
+    // If this button was already playing, just stop
+    if (originalText.includes('⏸️')) {
+        button.textContent = originalText.replace('⏸️', '🎵');
+        return;
+    }
+    
+    button.textContent = '⏳ Loading...';
+    button.disabled = true;
+    
+    try {
+        const response = await fetch(`/audio/${prayerId}?audio_type=${audioType}`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        const audioBlob = new Blob([Uint8Array.from(atob(data.audio), c => c.charCodeAt(0))], 
+                                  { type: data.type });
+        const audioUrl = URL.createObjectURL(audioBlob);
+        
+        currentAudio = new Audio(audioUrl);
+        
+        currentAudio.onplay = () => {
+            button.textContent = originalText.replace('🎵', '⏸️');
+        };
+        
+        currentAudio.onended = () => {
+            button.textContent = originalText;
+            URL.revokeObjectURL(audioUrl);
+            currentAudio = null;
+        };
+        
+        currentAudio.onerror = () => {
+            button.textContent = '❌ Error';
+            setTimeout(() => {
+                button.textContent = originalText;
+            }, 2000);
+            URL.revokeObjectURL(audioUrl);
+            currentAudio = null;
+        };
+        
+        await currentAudio.play();
+        
+    } catch (error) {
+        console.error('Audio playback error:', error);
+        if (error.message.includes('503')) {
+            button.textContent = '🔇 TTS Unavailable';
+        } else {
+            button.textContent = '❌ Error';
+        }
+        setTimeout(() => {
+            button.textContent = originalText;
+        }, 2000);
     } finally {
         button.disabled = false;
     }

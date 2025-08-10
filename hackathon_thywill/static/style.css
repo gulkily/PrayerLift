@@ -1,6 +1,7 @@
 /* PrayerLift - Custom CSS Design */
 
 :root {
+  /* Light mode (Ancient Scripture) */
   --primary: #8b4513;
   --primary-light: #cd853f;
   --secondary: #faf7f0;
@@ -16,6 +17,23 @@
   --gradient: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
 }
 
+[data-theme="dark"] {
+  /* Dark mode (Cyberpunk Spiritual) */
+  --primary: #00ffff;
+  --primary-light: #40e0d0;
+  --secondary: rgba(15, 20, 35, 0.8);
+  --accent: #ff6b6b;
+  --text: #e8f4f8;
+  --text-light: #b8dce8;
+  --text-muted: #8db3c4;
+  --background: #0a0f1a;
+  --card: rgba(20, 30, 50, 0.9);
+  --border: rgba(0, 255, 255, 0.3);
+  --shadow: rgba(0, 255, 255, 0.2);
+  --shadow-hover: rgba(0, 255, 255, 0.4);
+  --gradient: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -28,11 +46,20 @@ body {
   color: var(--text);
   background: var(--background);
   background-image: 
-    radial-gradient(circle at 20% 30%, var(--secondary) 0%, transparent 60%),
-    radial-gradient(circle at 80% 70%, rgba(218, 165, 32, 0.08) 0%, transparent 50%),
-    linear-gradient(45deg, transparent 48%, rgba(139, 69, 19, 0.02) 49%, rgba(139, 69, 19, 0.02) 51%, transparent 52%);
-  background-size: 400px 400px, 300px 300px, 60px 60px;
+    radial-gradient(circle at 25% 25%, var(--secondary) 0%, transparent 50%),
+    radial-gradient(circle at 75% 75%, rgba(139, 69, 19, 0.05) 0%, transparent 50%);
+  background-size: 400px 400px, 300px 300px;
   min-height: 100vh;
+  transition: all 0.3s ease;
+}
+
+[data-theme="dark"] body {
+  background-image: 
+    radial-gradient(circle at 10% 20%, rgba(0, 255, 255, 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(255, 107, 107, 0.03) 0%, transparent 50%),
+    linear-gradient(45deg, transparent 49%, rgba(0, 255, 255, 0.01) 50%, transparent 51%),
+    repeating-linear-gradient(90deg, transparent, transparent 100px, rgba(0, 255, 255, 0.03) 100px, rgba(0, 255, 255, 0.03) 101px);
+  background-size: 500px 500px, 400px 400px, 50px 50px, 200px 200px;
 }
 
 .container {
@@ -58,6 +85,13 @@ body {
   -webkit-text-fill-color: transparent;
   margin-bottom: 0.5rem;
   text-shadow: 2px 2px 4px rgba(139, 69, 19, 0.1);
+}
+
+[data-theme="dark"] .logo {
+  color: var(--primary);
+  -webkit-text-fill-color: var(--primary);
+  background: none;
+  text-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
 }
 
 .tagline {
@@ -87,12 +121,12 @@ body {
   left: 20px;
   right: 20px;
   height: 2px;
-  background: linear-gradient(90deg, var(--accent), transparent, var(--accent));
+  background: linear-gradient(90deg, var(--primary), transparent, var(--primary));
   opacity: 0.6;
 }
 
 .prayer-form h2 {
-  color: var(--text);
+  color: var(--primary);
   margin-bottom: 1.5rem;
   font-size: 1.5rem;
   font-weight: 600;
@@ -116,13 +150,19 @@ body {
   border-radius: 8px;
   font-size: 1rem;
   transition: all 0.3s ease;
-  background: var(--background);
+  background: var(--secondary);
+  color: var(--text);
 }
 
 .form-input:focus {
   outline: none;
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  box-shadow: 0 0 0 3px rgba(139, 69, 19, 0.1);
+}
+
+[data-theme="dark"] .form-input:focus {
+  box-shadow: 0 0 0 3px rgba(0, 255, 255, 0.1);
+  background: rgba(15, 20, 35, 0.6);
 }
 
 .form-textarea {
@@ -143,12 +183,16 @@ body {
   font-weight: 500;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 255, 255, 0.3);
 }
 
 .btn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+  box-shadow: 0 4px 12px rgba(139, 69, 19, 0.4);
+}
+
+[data-theme="dark"] .btn:hover {
+  box-shadow: 0 4px 12px rgba(0, 255, 255, 0.4);
 }
 
 .btn:active {
@@ -160,9 +204,9 @@ body {
   margin-bottom: 2rem;
   font-size: 1.75rem;
   font-weight: 400;
-  color: var(--text);
+  color: var(--primary);
   text-align: center;
-  font-family: 'Times New Roman', serif;
+  font-family: 'Georgia', serif;
   letter-spacing: 1px;
 }
 
@@ -185,7 +229,7 @@ body {
   right: 10px;
   width: 20px;
   height: 20px;
-  background: radial-gradient(circle, var(--accent) 30%, transparent 31%);
+  background: radial-gradient(circle, var(--primary) 30%, transparent 31%);
   opacity: 0.3;
 }
 
@@ -397,6 +441,79 @@ body {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* Theme Toggle */
+.theme-toggle {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 50px;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 1000;
+  font-size: 0.9rem;
+  color: var(--text);
+  box-shadow: 0 2px 8px var(--shadow);
+}
+
+.theme-toggle:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px var(--shadow-hover);
+}
+
+.theme-toggle::before {
+  content: '☀️';
+  margin-right: 8px;
+}
+
+[data-theme="dark"] .theme-toggle::before {
+  content: '🌙';
+}
+
+/* Audio Controls */
+.audio-controls {
+  margin-top: 0.75rem;
+  text-align: right;
+}
+
+.audio-btn {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  color: var(--text-light);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px var(--shadow);
+}
+
+.audio-btn:hover {
+  background: var(--primary);
+  color: var(--background);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px var(--shadow-hover);
+}
+
+.audio-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+[data-theme="dark"] .audio-btn {
+  background: rgba(0, 255, 255, 0.1);
+  border-color: rgba(0, 255, 255, 0.3);
+}
+
+[data-theme="dark"] .audio-btn:hover {
+  background: var(--primary);
+  color: var(--background);
+  box-shadow: 0 4px 8px rgba(0, 255, 255, 0.3);
 }
 
 /* Focus Styles for Accessibility */
