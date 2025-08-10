@@ -58,8 +58,14 @@
                 <h4>AI Prayer Response</h4>
                 <p>{{ prayer.generated_prayer }}</p>
                 <div class="audio-controls">
-                    <button onclick="playAudio('{{ prayer.id }}', 'generated')" class="audio-btn" title="Listen to AI prayer response">
+                    <button onclick="playAudio('{{ prayer.id }}', 'generated')" class="audio-btn play-btn" id="play-{{ prayer.id }}" title="Play AI prayer response">
                         🎵 Listen to Response
+                    </button>
+                    <button onclick="pauseResumeAudio('{{ prayer.id }}')" class="audio-btn pause-btn" id="pause-{{ prayer.id }}" style="display: none;" title="Pause/Resume">
+                        ⏸️ Pause
+                    </button>
+                    <button onclick="restartAudio('{{ prayer.id }}')" class="audio-btn restart-btn" id="restart-{{ prayer.id }}" style="display: none;" title="Restart">
+                        🔄 Restart
                     </button>
                 </div>
             </div>
@@ -139,33 +145,46 @@ async function togglePrayerMark(prayerId, isCurrentlyMarked) {
     }
 }
 
-// Audio playback functionality
+// Enhanced audio playback functionality
 let currentAudio = null;
+let currentPrayerId = null;
+let audioUrl = null;
 
-async function playAudio(prayerId, audioType) {
-    const button = event.target;
-    const originalText = button.textContent;
-    
-    // Stop current audio if playing
+// Reset all audio controls to initial state
+function resetAllAudioControls() {
+    document.querySelectorAll('.play-btn').forEach(btn => btn.style.display = 'inline-block');
+    document.querySelectorAll('.pause-btn').forEach(btn => btn.style.display = 'none');
+    document.querySelectorAll('.restart-btn').forEach(btn => btn.style.display = 'none');
+    document.querySelectorAll('.play-btn').forEach(btn => btn.textContent = '🎵 Listen to Response');
+    document.querySelectorAll('.pause-btn').forEach(btn => btn.textContent = '⏸️ Pause');
+}
+
+// Stop current audio and reset controls
+function stopCurrentAudio() {
     if (currentAudio) {
         currentAudio.pause();
         currentAudio = null;
-        // Reset all audio buttons
-        document.querySelectorAll('.audio-btn').forEach(btn => {
-            if (btn.textContent.includes('⏸️')) {
-                btn.textContent = btn.textContent.replace('⏸️', '🎵');
-            }
-        });
     }
-    
-    // If this button was already playing, just stop
-    if (originalText.includes('⏸️')) {
-        button.textContent = originalText.replace('⏸️', '🎵');
-        return;
+    if (audioUrl) {
+        URL.revokeObjectURL(audioUrl);
+        audioUrl = null;
     }
+    currentPrayerId = null;
+    resetAllAudioControls();
+}
+
+// Main play function
+async function playAudio(prayerId, audioType) {
+    const playBtn = document.getElementById(`play-${prayerId}`);
+    const pauseBtn = document.getElementById(`pause-${prayerId}`);
+    const restartBtn = document.getElementById(`restart-${prayerId}`);
     
-    button.textContent = '⏳ Loading...';
-    button.disabled = true;
+    // Stop any currently playing audio
+    stopCurrentAudio();
+    
+    // Set loading state
+    playBtn.textContent = '⏳ Loading...';
+    playBtn.disabled = true;
     
     try {
         const response = await fetch(`/audio/${prayerId}?audio_type=${audioType}`);
@@ -177,44 +196,81 @@ async function playAudio(prayerId, audioType) {
         const data = await response.json();
         const audioBlob = new Blob([Uint8Array.from(atob(data.audio), c => c.charCodeAt(0))], 
                                   { type: data.type });
-        const audioUrl = URL.createObjectURL(audioBlob);
+        audioUrl = URL.createObjectURL(audioBlob);
         
         currentAudio = new Audio(audioUrl);
+        currentPrayerId = prayerId;
         
+        // Audio event handlers
         currentAudio.onplay = () => {
-            button.textContent = originalText.replace('🎵', '⏸️');
+            playBtn.style.display = 'none';
+            pauseBtn.style.display = 'inline-block';
+            restartBtn.style.display = 'inline-block';
+        };
+        
+        currentAudio.onpause = () => {
+            pauseBtn.textContent = '▶️ Resume';
         };
         
         currentAudio.onended = () => {
-            button.textContent = originalText;
-            URL.revokeObjectURL(audioUrl);
-            currentAudio = null;
+            playBtn.textContent = '🎵 Listen to Response';
+            resetAllAudioControls();
+            stopCurrentAudio();
         };
         
         currentAudio.onerror = () => {
-            button.textContent = '❌ Error';
+            playBtn.textContent = '❌ Error';
             setTimeout(() => {
-                button.textContent = originalText;
+                playBtn.textContent = '🎵 Listen to Response';
+                resetAllAudioControls();
             }, 2000);
-            URL.revokeObjectURL(audioUrl);
-            currentAudio = null;
+            stopCurrentAudio();
         };
         
+        // Start playing
         await currentAudio.play();
         
     } catch (error) {
         console.error('Audio playback error:', error);
         if (error.message.includes('503')) {
-            button.textContent = '🔇 TTS Unavailable';
+            playBtn.textContent = '🔇 TTS Unavailable';
         } else {
-            button.textContent = '❌ Error';
+            playBtn.textContent = '❌ Error';
         }
         setTimeout(() => {
-            button.textContent = originalText;
+            playBtn.textContent = '🎵 Listen to Response';
+            resetAllAudioControls();
         }, 2000);
+        stopCurrentAudio();
     } finally {
-        button.disabled = false;
+        playBtn.disabled = false;
     }
+}
+
+// Pause/Resume function
+function pauseResumeAudio(prayerId) {
+    if (!currentAudio || currentPrayerId !== prayerId) return;
+    
+    const pauseBtn = document.getElementById(`pause-${prayerId}`);
+    
+    if (currentAudio.paused) {
+        currentAudio.play();
+        pauseBtn.textContent = '⏸️ Pause';
+    } else {
+        currentAudio.pause();
+        pauseBtn.textContent = '▶️ Resume';
+    }
+}
+
+// Restart function
+function restartAudio(prayerId) {
+    if (!currentAudio || currentPrayerId !== prayerId) return;
+    
+    const pauseBtn = document.getElementById(`pause-${prayerId}`);
+    
+    currentAudio.currentTime = 0;
+    currentAudio.play();
+    pauseBtn.textContent = '⏸️ Pause';
 }
 </script>
 {% endblock %}

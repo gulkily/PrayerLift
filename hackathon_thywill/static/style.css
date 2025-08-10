@@ -498,6 +498,10 @@ body {
 .audio-controls {
   margin-top: 0.75rem;
   text-align: right;
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  align-items: center;
 }
 
 .audio-btn {
@@ -510,6 +514,20 @@ body {
   cursor: pointer;
   transition: all 0.3s ease;
   box-shadow: 0 2px 4px var(--shadow);
+  white-space: nowrap;
+  min-width: 80px;
+}
+
+.audio-btn.pause-btn {
+  background: var(--accent);
+  color: var(--background);
+  border-color: var(--accent);
+}
+
+.audio-btn.restart-btn {
+  background: var(--secondary);
+  color: var(--text);
+  border-color: var(--border);
 }
 
 .audio-btn:hover {
