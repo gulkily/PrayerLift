@@ -21,3 +21,9 @@ __pycache__/
 
 # Audio cache
 hackathon_thywill/audio_cache/
+
+# IDE files
+.idea/
+*.swp
+*.swo
+*~
