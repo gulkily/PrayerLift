@@ -1,4 +1,4 @@
-/* PrayerLift - Custom CSS Design */
+/* PrayerLift - Custom CSS Design - Updated Quote Positioning */
 
 :root {
   /* Light mode (Ancient Scripture) */
@@ -262,7 +262,7 @@ body {
   color: var(--text);
   margin-bottom: 1.5rem;
   font-style: italic;
-  text-indent: 1.5rem;
+  padding-left: 1.2rem;
   position: relative;
 }
 
@@ -271,7 +271,7 @@ body {
   font-size: 2rem;
   color: var(--accent);
   position: absolute;
-  left: -0.5rem;
+  left: -0.2rem;
   top: -0.2rem;
   font-family: 'Times New Roman', serif;
 }
@@ -280,7 +280,6 @@ body {
   content: '"';
   font-size: 2rem;
   color: var(--accent);
-  margin-left: 0.2rem;
   font-family: 'Times New Roman', serif;
 }
 
@@ -317,6 +316,27 @@ body {
   font-style: italic;
   line-height: 1.7;
   font-size: 1.05rem;
+  position: relative;
+  padding-left: 1.2rem;
+}
+
+.prayer-generated p::before {
+  content: '"';
+  font-size: 1.5rem;
+  color: var(--accent);
+  position: absolute;
+  left: 0;
+  top: -0.2rem;
+  font-family: 'Times New Roman', serif;
+  opacity: 0.8;
+}
+
+.prayer-generated p::after {
+  content: '"';
+  font-size: 1.5rem;
+  color: var(--accent);
+  font-family: 'Times New Roman', serif;
+  opacity: 0.8;
 }
 
 .prayer-actions {
