@@ -2,6 +2,10 @@ import requests
 import json
 import os
 from typing import Optional
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 class ClaudeAIService:
     def __init__(self):
@@ -14,7 +18,14 @@ class ClaudeAIService:
         if not self.api_key:
             return self._fallback_prayer()
             
-        prompt = f"""You are a compassionate spiritual guide helping to craft prayer responses. 
+        # Load prompt from file
+        try:
+            with open("prayer_prompt.txt", "r") as f:
+                prompt_template = f.read()
+            prompt = prompt_template.format(author_name=author_name, prayer_request=prayer_request)
+        except FileNotFoundError:
+            # Fallback to inline prompt if file not found
+            prompt = f"""You are a compassionate spiritual guide helping to craft prayer responses. 
 
 Someone named {author_name} has shared this prayer request:
 "{prayer_request}"
