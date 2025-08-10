@@ -1,0 +1,20 @@
+# Database
+database.db
+
+# Virtual environments
+venv/
+hackathon_thywill/venv/
+
+# Environment variables
+.env
+
+# Archive data
+complete_site_archive/
+complete_site_archive_2025_08_10_1633.zip
+
+# Screenshots
+screenshot/
+
+# Python cache
+__pycache__/
+*.pyc
